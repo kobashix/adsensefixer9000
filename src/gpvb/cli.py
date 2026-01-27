@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 from pathlib import Path
 from typing import Optional
 
@@ -55,6 +56,10 @@ def audit(
     ignore_querystrings: bool = typer.Option(False, "--ignore-querystrings"),
     rate_limit_ms: int = typer.Option(250, "--rate-limit-ms"),
 ) -> None:
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s | %(levelname)s | %(message)s",
+    )
     config = CrawlConfig(
         site=site,
         out_dir=str(out),

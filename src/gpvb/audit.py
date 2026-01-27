@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 import re
 import time
 from collections import defaultdict
@@ -29,19 +30,23 @@ from gpvb.storage import Storage
 
 
 async def audit_site(config: CrawlConfig) -> FindingsReport:
+    logger = logging.getLogger("gpvb")
     out_dir = Path(config.out_dir)
     pages_dir = out_dir / "pages"
     pages_dir.mkdir(parents=True, exist_ok=True)
 
+    logger.info("Starting audit for %s", config.site)
     client = httpx.AsyncClient(headers={"User-Agent": config.user_agent}, timeout=20)
     robots = await _load_robots(client, config.site, config.respect_robots)
 
     sitemap_urls = await expand_sitemaps(client, config.site)
     queue: asyncio.Queue[Tuple[str, int]] = asyncio.Queue()
     if sitemap_urls:
+        logger.info("Discovered %s sitemap URLs", len(sitemap_urls))
         for url in sitemap_urls:
             await queue.put((url, 0))
     else:
+        logger.info("No sitemap found; starting BFS crawl from homepage")
         await queue.put((config.site, 0))
 
     include_pattern = re.compile(config.include_regex) if config.include_regex else None
@@ -63,6 +68,7 @@ async def audit_site(config: CrawlConfig) -> FindingsReport:
                     break
                 url, depth = item
                 canonical = canonicalize_url(url, config.ignore_querystrings)
+                logger.info("Processing %s (depth %s)", canonical, depth)
 
                 async with lock:
                     if canonical in seen or len(pages) >= config.max_pages:
@@ -91,6 +97,7 @@ async def audit_site(config: CrawlConfig) -> FindingsReport:
                     viewport={"width": 1366, "height": 768},
                     screenshot_path=str(screenshot_path),
                 )
+                logger.info("Rendered %s -> %s (%s)", canonical, final_url, status)
                 text = extract_visible_text(html)
                 page = PageResult(
                     url=canonical,
@@ -132,12 +139,16 @@ async def audit_site(config: CrawlConfig) -> FindingsReport:
                     pages.append(page)
 
                 if not sitemap_urls and depth < config.max_depth:
+                    added_links = 0
                     for link in extract_links(html, final_url):
                         canonical_link = canonicalize_url(link, config.ignore_querystrings)
                         async with lock:
                             if canonical_link in seen:
                                 continue
                         await queue.put((canonical_link, depth + 1))
+                        added_links += 1
+                    if added_links:
+                        logger.info("Queued %s links from %s", added_links, canonical)
 
                 queue.task_done()
 
@@ -178,6 +189,7 @@ async def audit_site(config: CrawlConfig) -> FindingsReport:
 
     write_json(report, out_dir)
     write_html(report, out_dir)
+    logger.info("Wrote report to %s", out_dir.resolve())
 
     if config.list_skipped:
         skipped = [page for page in pages if page.skipped_reason]
@@ -185,6 +197,7 @@ async def audit_site(config: CrawlConfig) -> FindingsReport:
             storage = Storage(Path("gpvb.sqlite"))
             storage.save_pages(skipped)
 
+    logger.info("Audit complete (%s pages)", len(pages))
     return report
 
 

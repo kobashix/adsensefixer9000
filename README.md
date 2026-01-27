@@ -38,6 +38,7 @@ python -m playwright install chromium
    ```powershell
    gpvb audit --site https://example.com --out .\out --max-pages 500 --concurrency 6 --respect-robots true --user-agent "GPVB/1.0"
    ```
+   You'll see progress logs in the terminal while the crawl runs.
 6. Open the report:
    ```powershell
    start .\out\report.html
