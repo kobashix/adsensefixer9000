@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 from collections import Counter
 from typing import Any, Dict, List, Optional, Tuple
+from urllib.parse import urlparse
 
 from playwright.async_api import Browser, BrowserContext, Page, async_playwright
 
@@ -56,10 +57,15 @@ class BrowserPool:
             context = await self.new_context(viewport)
             page = await context.new_page()
             requests = Counter()
-            page.on(
-                "request",
-                lambda request: requests.update([request.url.split("/")[2]]),
-            )
+            def _track_request(request) -> None:
+                try:
+                    host = urlparse(request.url).netloc
+                    if host:
+                        requests.update([host])
+                except Exception:
+                    return
+
+            page.on("request", _track_request)
             response = await page.goto(url, wait_until="networkidle", timeout=timeout_ms)
             status = response.status if response else 0
             headers = response.headers if response else {}
