@@ -30,7 +30,7 @@ def _render_html(
     dup_sections = "\n".join(
         f"<li>{', '.join(cluster['urls'])} (sim {cluster['similarity']})</li>" for cluster in duplicates
     )
-    return f"""
+    template = """
 <!doctype html>
 <html>
 <head>
@@ -72,23 +72,28 @@ def _render_html(
     const severityFilter = document.getElementById('severity-filter');
     const detectorFilter = document.getElementById('detector-filter');
     const cards = Array.from(document.querySelectorAll('.card'));
-    const applyFilters = () => {
+    const applyFilters = () => {{
       const severity = severityFilter.value;
       const detector = detectorFilter.value.trim().toLowerCase();
-      cards.forEach((card) => {
+      cards.forEach((card) => {{
         const severities = card.dataset.severities.split(',');
         const detectors = card.dataset.detectors.split(',');
         const severityMatch = severity === 'all' || severities.includes(severity);
         const detectorMatch = !detector || detectors.some((d) => d.includes(detector));
         card.style.display = severityMatch && detectorMatch ? 'block' : 'none';
-      });
-    };
+      }});
+    }};
     severityFilter.addEventListener('change', applyFilters);
     detectorFilter.addEventListener('input', applyFilters);
   </script>
 </body>
 </html>
 """
+    return template.format(
+        summary_rows=summary_rows,
+        dup_sections=dup_sections,
+        page_cards=page_cards,
+    )
 
 
 def _render_page_card(page: PageResult) -> str:

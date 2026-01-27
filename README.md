@@ -11,6 +11,34 @@ pip install -e .
 python -m playwright install chromium
 ```
 
+## Windows 11 (PowerShell) step-by-step
+
+1. Open PowerShell and go to the repo folder:
+   ```powershell
+   cd C:\path\to\adsensefixer9000
+   ```
+2. Create and activate a virtual environment:
+   ```powershell
+   python -m venv .venv
+   .\.venv\Scripts\Activate.ps1
+   ```
+3. Install the package and dev dependencies (optional for tests):
+   ```powershell
+   pip install -e .
+   ```
+4. Install Playwright Chromium:
+   ```powershell
+   python -m playwright install chromium
+   ```
+5. Run an audit:
+   ```powershell
+   gpvb audit --site https://example.com --out .\out --max-pages 500 --concurrency 6 --respect-robots true --user-agent "GPVB/1.0"
+   ```
+6. Open the report:
+   ```powershell
+   start .\out\report.html
+   ```
+
 ## Usage
 
 ```bash
