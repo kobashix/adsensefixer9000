@@ -26,6 +26,10 @@ python -m playwright install chromium
    ```powershell
    pip install -e .
    ```
+   If you update the code, re-run the same command to refresh the console script:
+   ```powershell
+   pip install -e .
+   ```
 4. Install Playwright Chromium:
    ```powershell
    python -m playwright install chromium

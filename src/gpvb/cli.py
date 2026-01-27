@@ -9,7 +9,11 @@ import typer
 from gpvb.audit import audit_site
 from gpvb.models import CrawlConfig
 
-app = typer.Typer(help="Google Policy Violations Bot")
+app = typer.Typer(
+    help="Google Policy Violations Bot",
+    no_args_is_help=True,
+    context_settings={"allow_extra_args": True, "ignore_unknown_options": True},
+)
 
 
 def _parse_bool(value: Optional[str]) -> bool:
@@ -21,6 +25,20 @@ def _parse_bool(value: Optional[str]) -> bool:
     if normalized in {"false", "0", "no", "n", "off"}:
         return False
     raise typer.BadParameter("Expected a boolean value (true/false).")
+
+
+@app.callback(invoke_without_command=True)
+def main(ctx: typer.Context) -> None:
+    if ctx.invoked_subcommand is None and ctx.args:
+        typer.secho(
+            "Unknown command. If you meant to run an audit, use:\n"
+            "  gpvb audit --site https://example.com --out ./out --max-pages 500 "
+            "--concurrency 6 --respect-robots true --user-agent \"GPVB/1.0\"\n"
+            "If you recently updated the code, re-run: pip install -e .",
+            fg=typer.colors.RED,
+            err=True,
+        )
+        raise typer.Exit(code=2)
 
 
 @app.command()
@@ -53,9 +71,5 @@ def audit(
     asyncio.run(audit_site(config))
 
 
-def main() -> None:
-    app()
-
-
 if __name__ == "__main__":
-    main()
+    app()
