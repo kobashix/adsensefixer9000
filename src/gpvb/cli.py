@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 from pathlib import Path
+from typing import Optional
 
 import typer
 
@@ -11,6 +12,17 @@ from gpvb.models import CrawlConfig
 app = typer.Typer(help="Google Policy Violations Bot")
 
 
+def _parse_bool(value: Optional[str]) -> bool:
+    if value is None:
+        return True
+    normalized = value.strip().lower()
+    if normalized in {"true", "1", "yes", "y", "on"}:
+        return True
+    if normalized in {"false", "0", "no", "n", "off"}:
+        return False
+    raise typer.BadParameter("Expected a boolean value (true/false).")
+
+
 @app.command()
 def audit(
     site: str = typer.Option(..., "--site"),
@@ -18,7 +30,7 @@ def audit(
     max_pages: int = typer.Option(500, "--max-pages"),
     max_depth: int = typer.Option(3, "--max-depth"),
     concurrency: int = typer.Option(6, "--concurrency"),
-    respect_robots: bool = typer.Option(True, "--respect-robots"),
+    respect_robots: str = typer.Option("true", "--respect-robots"),
     user_agent: str = typer.Option("GPVB/1.0", "--user-agent"),
     include_regex: str = typer.Option(None, "--include-regex"),
     exclude_regex: str = typer.Option(None, "--exclude-regex"),
@@ -31,7 +43,7 @@ def audit(
         max_pages=max_pages,
         max_depth=max_depth,
         concurrency=concurrency,
-        respect_robots=respect_robots,
+        respect_robots=_parse_bool(respect_robots),
         user_agent=user_agent,
         include_regex=include_regex,
         exclude_regex=exclude_regex,
@@ -41,5 +53,9 @@ def audit(
     asyncio.run(audit_site(config))
 
 
-if __name__ == "__main__":
+def main() -> None:
     app()
+
+
+if __name__ == "__main__":
+    main()

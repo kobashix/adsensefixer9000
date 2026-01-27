@@ -52,7 +52,7 @@ gpvb audit --site https://example.com --out ./out --max-pages 500 --concurrency 
 - `--max-depth`: BFS depth when no sitemap is found.
 - `--include-regex`, `--exclude-regex`: URL filters.
 - `--ignore-querystrings`: drop query strings when canonicalizing.
-- `--respect-robots`: honor robots.txt.
+- `--respect-robots`: honor robots.txt (`true`/`false`).
 - `--rate-limit-ms`: per-host delay (default 250ms).
 
 ## Output
