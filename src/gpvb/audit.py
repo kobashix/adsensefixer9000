@@ -39,7 +39,10 @@ async def audit_site(config: CrawlConfig) -> FindingsReport:
     client = httpx.AsyncClient(headers={"User-Agent": config.user_agent}, timeout=20)
     robots = await _load_robots(client, config.site, config.respect_robots)
 
-    sitemap_urls = await expand_sitemaps(client, config.site)
+    site_host = urlparse(config.site).netloc.lower()
+    sitemap_urls = [
+        url for url in await expand_sitemaps(client, config.site) if _is_same_domain(url, site_host)
+    ]
     queue: asyncio.Queue[Tuple[str, int]] = asyncio.Queue()
     if sitemap_urls:
         logger.info("Discovered %s sitemap URLs", len(sitemap_urls))
@@ -69,6 +72,11 @@ async def audit_site(config: CrawlConfig) -> FindingsReport:
                 url, depth = item
                 canonical = canonicalize_url(url, config.ignore_querystrings)
                 logger.info("Processing %s (depth %s)", canonical, depth)
+
+                if not _is_same_domain(canonical, site_host):
+                    logger.info("Skipping external URL %s", canonical)
+                    queue.task_done()
+                    continue
 
                 async with lock:
                     if canonical in seen or len(pages) >= config.max_pages:
@@ -142,6 +150,8 @@ async def audit_site(config: CrawlConfig) -> FindingsReport:
                     added_links = 0
                     for link in extract_links(html, final_url):
                         canonical_link = canonicalize_url(link, config.ignore_querystrings)
+                        if not _is_same_domain(canonical_link, site_host):
+                            continue
                         async with lock:
                             if canonical_link in seen:
                                 continue
@@ -268,3 +278,7 @@ async def _probe_privacy_paths(client: httpx.AsyncClient, base_url: str) -> bool
 def _slugify(url: str) -> str:
     safe = re.sub(r"[^a-zA-Z0-9]+", "-", url).strip("-")
     return safe[:80] if safe else "page"
+
+
+def _is_same_domain(url: str, site_host: str) -> bool:
+    return urlparse(url).netloc.lower() == site_host

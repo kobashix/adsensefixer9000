@@ -8,13 +8,22 @@ from bs4 import BeautifulSoup
 
 
 async def fetch_sitemap_urls(client: httpx.AsyncClient, base_url: str) -> List[str]:
-    sitemap_url = urljoin(base_url, "/sitemap.xml")
-    try:
-        response = await client.get(sitemap_url)
-        response.raise_for_status()
-    except httpx.HTTPError:
-        return []
-    return parse_sitemap(response.text)
+    candidates = [
+        "/sitemap.xml",
+        "/sitemap_index.xml",
+        "/sitemap_post.xml",
+        "/sitemap_page.xml",
+    ]
+    urls: List[str] = []
+    for path in candidates:
+        sitemap_url = urljoin(base_url, path)
+        try:
+            response = await client.get(sitemap_url)
+            response.raise_for_status()
+        except httpx.HTTPError:
+            continue
+        urls.extend(parse_sitemap(response.text))
+    return list(dict.fromkeys(urls))
 
 
 def parse_sitemap(xml_text: str) -> List[str]:
