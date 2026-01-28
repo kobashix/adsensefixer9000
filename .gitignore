@@ -1,4 +1,5 @@
 .venv/pyvenv.cfg
+pages/
 .venv/Include/site/python3.12/greenlet/greenlet.h
 .venv/Lib/site-packages/__editable__.google_policy_violations_bot-0.1.0.pth
 .venv/Lib/site-packages/six.py
@@ -3855,3 +3856,6 @@ out/pages/https-www-tax-nd-gov/screenshot.png
 out/pages/https-www-tax-ny-gov/screenshot.png
 out/pages/https-www-tax-virginia-gov/screenshot.png
 out/pages/https-www-twitter-com-RefundSchedule/screenshot.png
+out/report.html
+out/findings.json
+.gitignore
