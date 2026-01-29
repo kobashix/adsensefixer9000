@@ -158,11 +158,44 @@ class BrowserPool:
                 .map(getRect)
                 .filter((rect) => rect.width * rect.height > window.innerWidth * window.innerHeight * 0.6);
 
+              const textCandidates = Array.from(
+                document.querySelectorAll('p, li, a, button, label, span, strong, em, small, div, h1, h2, h3, h4')
+              );
+              const textBlocks = textCandidates
+                .map((el) => {
+                  const text = (el.innerText || '').trim();
+                  if (!text || text.length < 3) {
+                    return null;
+                  }
+                  const rect = getRect(el);
+                  if (!rect.width || !rect.height) {
+                    return null;
+                  }
+                  return {text, x: rect.x, y: rect.y, width: rect.width, height: rect.height};
+                })
+                .filter(Boolean)
+                .slice(0, 300);
+
+              const labelRegex = /advertisement|sponsored|adchoices|ads by google/i;
+              const labelBlocks = textBlocks
+                .filter((block) => labelRegex.test(block.text))
+                .map((block) => {
+                  const el = textCandidates.find((candidate) => (candidate.innerText || '').trim() === block.text);
+                  const style = el ? window.getComputedStyle(el) : {fontSize: '0px', opacity: '1'};
+                  return {
+                    ...block,
+                    font_size: parseFloat(style.fontSize || '0') || 0,
+                    opacity: parseFloat(style.opacity || '1') || 1,
+                  };
+                });
+
               return {
                 ads,
                 has_google_ad_client: hasGoogleAdClient,
                 has_noindex_meta: hasNoindex,
                 overlays,
+                text_blocks: textBlocks,
+                label_blocks: labelBlocks,
               };
             }
             """ % AD_SELECTORS
@@ -172,5 +205,7 @@ class BrowserPool:
             "has_google_ad_client": data["has_google_ad_client"],
             "has_noindex_meta": data["has_noindex_meta"],
             "overlays": data["overlays"],
+            "text_blocks": data.get("text_blocks", []),
+            "label_blocks": data.get("label_blocks", []),
         }
         return ads, extras
