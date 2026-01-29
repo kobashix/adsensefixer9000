@@ -11,12 +11,22 @@ class Severity(str, Enum):
     low = "low"
     medium = "medium"
     high = "high"
+    critical = "critical"
+
+
+class FindingCategory(str, Enum):
+    general = "general"
+    program_policy = "program_policy"
 
 
 class Finding(BaseModel):
     detector: str
     severity: Severity
     message: str
+    category: FindingCategory = FindingCategory.general
+    confidence: float = Field(default=0.0, ge=0.0, le=1.0)
+    remediation: List[str] = Field(default_factory=list)
+    policy_links: List[str] = Field(default_factory=list)
     evidence: Dict[str, Any] = Field(default_factory=dict)
 
 
@@ -57,6 +67,7 @@ class CrawlConfig(BaseModel):
     ignore_querystrings: bool = False
     rate_limit_ms: int = 250
     list_skipped: bool = True
+    enable_program_policy_checks: bool = True
 
 
 @dataclass
@@ -67,6 +78,8 @@ class DuplicateCluster:
 
 class FindingsReport(BaseModel):
     summary: Dict[str, Dict[str, int]]
+    program_policy_summary: Dict[str, Dict[str, int]] = Field(default_factory=dict)
+    account_risk: Dict[str, Any] = Field(default_factory=dict)
     pages: List[PageResult]
     duplicates: List[DuplicateCluster]
     site: str
